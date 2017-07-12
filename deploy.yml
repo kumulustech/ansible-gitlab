@@ -1,0 +1,71 @@
+---
+- hosts: all
+  gather_facts: False
+  
+  tasks:
+  - name: install python 2
+    raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
+
+- hosts: all
+  tasks:
+  - name: update apt repos
+    apt:
+      upgrade: dist
+      update_cache: yes
+  - name: ensure minimum packages are installed
+    apt:
+      name: '{{item}}'
+      state: latest
+    with_items:
+      - curl
+      - openssh-server
+      - ca-certificates
+      - apt-transport-https
+      - postfix
+      - tzdata
+  - name: add gitlab gpg apt key
+    apt_key:
+      url: 'https://packages.gitlab.com/gitlab/gitlab-ce/gpgkey'
+  - name: update apt repo
+    apt_repository:
+      repo: '{{item}}'
+      state: present
+    with_items:
+    - 'deb https://packages.gitlab.com/gitlab/gitlab-ce/ubuntu/ xenial main'
+    - 'deb-src https://packages.gitlab.com/gitlab/gitlab-ce/ubuntu/ xenial main'
+  - name: install gitlab-ce
+    apt:
+      name: gitlab-ce
+      state: latest
+  - name: make certificat and registry directory
+    file:
+      path: "{{item}}"
+      state: directory
+    with_items:
+      - /var/opt/gitlab/gitlab-rails/shared/registry
+      - /var/www/letsencrypt
+  - name: add certbot repository
+    apt_repository:
+      repo: ppa:certbot/certbot
+      state: present
+  - name: install certbot
+    apt:
+      name: certbot
+      state: latest
+  - name: get certificate
+    command: certbot certonly --webroot --webroot-path=/var/www/letsencrypt -d {{inventory_hostname}}
+  - name: update crontab to keep cert up to date
+    cron:
+- cron:
+    name: "check dirs"
+    minute: "14"
+    hour: "2"
+    job: /usr/bin/certbot renew --quiet --renew-hook "/usr/bin/gitlab-ctl restart nginx"
+  - name: copy gitlab .rb file to system
+    template:
+      src: templates/gitlab.rb.j2
+      dest: /etc/gitlab/gitlab.rb
+  - name: configure gitlab
+    shell: gitlab-ctl reconfigure |& grep 'gitlab Reconfigured'
+    register: gitlab_state
+ 
