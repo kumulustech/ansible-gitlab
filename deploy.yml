@@ -1,7 +1,7 @@
 ---
 - hosts: all
   gather_facts: False
-  
+
   tasks:
   - name: install python 2
     raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
@@ -53,19 +53,16 @@
       name: certbot
       state: latest
   - name: get certificate
-    command: certbot certonly --webroot --webroot-path=/var/www/letsencrypt -d {{inventory_hostname}}
+    command: certbot certonly --agree-tos -m {{email}} --standalone --webroot-path=/var/www/letsencrypt -d {{inventory_hostname}}
   - name: update crontab to keep cert up to date
     cron:
-- cron:
-    name: "check dirs"
-    minute: "14"
-    hour: "2"
-    job: /usr/bin/certbot renew --quiet --renew-hook "/usr/bin/gitlab-ctl restart nginx"
+      name: "check dirs"
+      minute: "14"
+      hour: "2"
+      job: /usr/bin/certbot renew --quiet --renew-hook "/usr/bin/gitlab-ctl restart nginx"
   - name: copy gitlab .rb file to system
     template:
       src: templates/gitlab.rb.j2
       dest: /etc/gitlab/gitlab.rb
   - name: configure gitlab
-    shell: gitlab-ctl reconfigure |& grep 'gitlab Reconfigured'
-    register: gitlab_state
- 
+    shell: gitlab-ctl reconfigure

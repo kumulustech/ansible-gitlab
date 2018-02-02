@@ -14,7 +14,7 @@ variable control_name {
 
 variable project_id {
     type = "string"
-    default =  "b972930e-5e5a-4112-ae35-c1776bf0b65c"
+    default =  "84fe4749-d08b-4042-b722-5573466f35f3"
 }
 
 resource "packet_device" "control" {
@@ -25,19 +25,19 @@ resource "packet_device" "control" {
         billing_cycle = "hourly"
         project_id = "${var.project_id}"
         provisioner "local-exec" {
-          command = "sed -i '' -e 's/${var.control_name}.*/${var.control_name} ansible_ssh_host=${packet_device.control.network.0.address}/' inventory"
+          command = "sed -i '' -e 's/${var.control_name}.*/${var.control_name}.${domain_name} ansible_ssh_host=${packet_device.control.network.0.address}/' inventory"
         }
 }
 
 # Create a new block volume
-resource "packet_volume" "control_vol" {
-    description = "${var.control_name}_vol"
-    facility = "ewr1"
-    project_id = "${var.project_id}"
-    plan = "storage_1"
-    size = 50
-    billing_cycle = "hourly"
-}
+#resource "packet_volume" "control_vol" {
+#    description = "${var.control_name}_vol"
+#    facility = "ewr1"
+#    project_id = "${var.project_id}"
+#    plan = "storage_1"
+#    size = 50
+#    billing_cycle = "hourly"
+#}
 
 resource "dnsimple_record" "control" {
     domain = "${var.domain_name}"
