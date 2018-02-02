@@ -1,0 +1,22 @@
+---
+- hosts: all
+  tasks:
+    - name: install packages needed for docker-ce
+      apt:
+        name: "{{item}}"
+        state: present
+      with_items:
+        - apt-transport-https
+        - ca-certificates
+        - curl
+        - software-properties-common
+    - name: add the gpg key for docker
+      shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+    - name: add apt repository
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu xenial stable
+        state: present
+    - name: add docker-ce
+      apt:
+        name: docker-ce
+        update-cache: yes
